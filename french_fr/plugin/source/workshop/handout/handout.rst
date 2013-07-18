@@ -54,7 +54,7 @@ Les couches sont empilées de haut en bas et accédées par un indice à base 0.
 Accéder aux Features (Attributs et Geometrie)
 ----------------------------------------------------------
 
-Utiliser QgsVectorDataProvider.select()
+Utiliser QgsVectorDataProvider.getFeatures()
 ****************************************
 
 Boucler sur toutes les features::
@@ -67,7 +67,9 @@ Boucler sur toutes les features::
         columnList.append(provider.fieldNameIndex(i))
 
     rect = QgsRectangle(QgsPoint(0,0),QgsPoint(20, 34))
-    provider.select(selectList, rect, True, False)
+    req = QgsFeatureRequest(rect)
+    req.
+    provider.getFeature(selectList, rect, True, False)
     feat = QgsFeature()
     while provider.nextFeature(feat):
         att = feat.attributeMap()

@@ -280,7 +280,7 @@ Une note rapide. La fonction\  ``QObject.connect()`` \fait le travail d'enregist
 Nous savons que le signal\  ``canvasClicked()`` \émet un QgsPoint. Dans notre fonction\  ``handleMouseDown()`` \nous utilisons une boîte de message pour visualiser les composants X,Y de ce point.
 
 
-\  **9.** \Finalement, nous devons nous assurer que l'outil de clic que nous initialisons dans\  ``__init__()`` \est activé quand notre outil tourne. Ajoutez ce code au tout début de la fonction\  ``run()`` \::
+\  **9.** \Finalement, nous devons nous assurer que l'outil de clic que nous initialisons dans\  ``__init__()`` \est activé quand notre outil tourne. Ajoutez ce code au tout début de la fonction\  ``run()`` \ ::
 
     # make our clickTool the tool that we'll use for now 
     self.canvas.setMapTool(self.clickTool)
@@ -322,7 +322,7 @@ Si vous avez une erreur, faites de votre mieux pour la localiser, éditez la, et
 
 
 Relier la sortie de QgsPoint au GUI
--**********************************
+**********************************
 
 \  **1.** \Ouvrez le fichier\  ``vector_selectbypointdialog.py`` \.::
 
@@ -365,7 +365,7 @@ Quelques remarques à propos de ce fichier:
             self.ui.txtFeedback.clear()
 
 
-\  **3.** \Ouvrez maintenant et commentez la création de la boîte de message\  ``vector_selectbypoint.py`` \::
+\  **3.** \Ouvrez maintenant et commentez la création de la boîte de message\  ``vector_selectbypoint.py``\ ::
 
     #QMessageBox.information( self.iface.mainWindow(),"Info", "connect = %s"%str(result) )
 
@@ -376,7 +376,7 @@ Quelques remarques à propos de ce fichier:
     # create our GUI dialog
     self.dlg = vector_selectbypointDialog()
 
-\  **5.** \Maintenant que la variable\  ``dlg`` \est une variable d'instance de classe en Python nous devons vérifier que toutes les références qui y sont faites doivent inclure\  ``self.`` \. Changez donc toutes les références à\  ``dlg`` \dans la fonction\  ``run()`` \::
+\  **5.** \Maintenant que la variable\  ``dlg`` \est une variable d'instance de classe en Python nous devons vérifier que toutes les références qui y sont faites doivent inclure\  ``self``\. Changez donc toutes les références à\  ``dlg`` \dans la fonction\  ``run()``\ ::
 
     # show the dialog
     self.dlg.show()
@@ -406,7 +406,7 @@ Le but désormais va être de sélectionner la feature qu'on a cliqué sur la ca
     1. Nous avons besoin d'un moyen de connecter la fonction spécifique qui va faire la sélection à notre évènement de clic
     2. Nous avons besoin d'écrire une fonction spécifique qui fait le travail de sélection
 
-\  **1.** \Pour commencer, écrivez une nouvelle connexion au signal\  ``canvasClicked()`` \. Nous allons créer notre propre fonction de sélection\  ``selectFeature()`` \à la prochaine étape. Au cas où vous auriez oublié, cette connexion est implémentée exactement de la même manière que pour la fonction\  ``handleMouseDown()`` \ dans la section précédente. Mettez ce code à la fin de la fonction\  ``initGui()`` \::
+\  **1.** \Pour commencer, écrivez une nouvelle connexion au signal\  ``canvasClicked()`` \. Nous allons créer notre propre fonction de sélection\  ``selectFeature()`` \à la prochaine étape. Au cas où vous auriez oublié, cette connexion est implémentée exactement de la même manière que pour la fonction\  ``handleMouseDown()`` \ dans la section précédente. Mettez ce code à la fin de la fonction\  ``initGui()`` \ ::
 
         # connect our select function to the canvasClicked signal
         result = QObject.connect(self.clickTool, SIGNAL("canvasClicked(const QgsPoint &, Qt::MouseButton)"), self.selectFeature)
@@ -416,30 +416,27 @@ Remarquez que nous mettons un QMessageBox immédiatement après la connexion pou
 
 \  **2.** \Maintenant écrivez la fonction spécifique pour sélectionnez les features. Pour comprendre ce que le code suivant effectue, lisez les commentaires. Tout ce qui est ans la fonction a déjà été vu dans les parties précédentes. Reprenez les explications si cela ne vous semble pas clair ou posez des questions::
 
-     def selectFeature(self, point, button):
-            QMessageBox.information( self.iface.mainWindow(),"Info", "in selectFeature function" )
-            # setup the provider select to filter results based on a rectangle
-            pntGeom = QgsGeometry.fromPoint(point)  
-            # scale-dependent buffer of 2 pixels-worth of map units
-            pntBuff = pntGeom.buffer( (self.canvas.mapUnitsPerPixel() * 2),0) 
-            rect = pntBuff.boundingBox()
-            # get currentLayer and dataProvider
-            cLayer = self.canvas.currentLayer()
-            selectList = []
-            if cLayer:
-                    provider = cLayer.dataProvider()
-                    feat = QgsFeature()
-                    # create the select statement
-                    provider.select([],rect) # the arguments mean no attributes returned, and do a bbox filter with our buffered rectangle to limit the amount of features  
-                    while provider.nextFeature(feat):
-                            # if the feat geom returned from the selection intersects our point then put it in a list
-                            if feat.geometry().intersects(pntGeom):
-                                    selectList.append(feat.id())
+    def selectFeature(self, point, button):
+        QMessageBox.information( self.iface.mainWindow(),"Info", "in selectFeature function" )
+        # setup the provider select to filter results based on a rectangle
+        pntGeom = QgsGeometry.fromPoint(point)  
+        # scale-dependent buffer of 2 pixels-worth of map units
+        pntBuff = pntGeom.buffer( (self.canvas.mapUnitsPerPixel() * 2),0) 
+        rect = pntBuff.boundingBox()
+        # get currentLayer and dataProvider
+        cLayer = self.canvas.currentLayer()
+        selectList = []
+        if cLayer:
+            provider = cLayer.dataProvider()
+            for feat in provider.getFeatures(QgsFeatureRequest(rect)):
+                # if the feat geom returned from the selection intersects our point then put it in a list
+                if feat.geometry().intersects(pntGeom):
+                    selectList.append(feat.id())
 
-                    # make the actual selection     
-                    cLayer.setSelectedFeatures(selectList)
-            else:
-                    QMessageBox.information( self.iface.mainWindow(),"Info", "No layer currently selected in TOC" )
+            # make the actual selection     
+            cLayer.setSelectedFeatures(selectList)
+        else:
+            QMessageBox.information( self.iface.mainWindow(),"Info", "No layer currently selected in TOC" )
 
 \  **3.** \Le code Python complet devrait maintenant ressembler à \  `ceci <../_static/featureselect_1.py>`_
 
@@ -511,15 +508,17 @@ Il est temps de faire en sorte que notre outil soit activable/désactivable selo
 
 Vous avez pu remarquer quelques petits détails intéressants qui se passent dans le module\  ``vector_selectbypoint.py`` \, que je trouve pénible. Examinons les changements et modifions ensuite le code dans les étapes suivantes:
 
-    \  **1.** \Chaque fois que l'on clique sur le canvas de la carte, un signal est émis, et notre slot (ou fonction appelée)\  ``selectFeature()`` \s'exécute et fait un certain nombre de choses avant de sélectionner une feature:
-        * récupérer la couche courante et régler une variable dans la fonction locale
-        * Récupérer le data provider de la couche courante et régler une variable dans la fonction locale  
+    \  **1.** \ Chaque fois que l'on clique sur le canvas de la carte, un signal est émis, et notre slot (ou fonction appelée) ``selectFeature()`` s'exécute et fait un certain nombre de choses avant de sélectionner une feature:
 
-    **SOLUTION** \:Cela ne semble pas être l'endroit le plus intuitif pour récupérer la couche courante et son data provider. Réorganisons les choses pour faire plus simple. Lorsqu'une couche est sélectionnée, la liste des couche émet un signal. Cela semble un bon endroit pour y mettre le code d'initialisation pour la couche courante ou le data provider puisque nous ne nous servons que d'une seule couche à la fois.
+    * récupérer la couche courante et régler une variable dans la fonction locale
 
-    \  **2.** \Donner les coordonnées X,Y au clic n'est pas d'un très grand intérêt.
+    * Récupérer le data provider de la couche courante et régler une variable dans la fonction locale  
 
-    **SOLUTION** \:Mettons quelque chose de plus intéressant dans le TextBrowser. Nous allons mettre l'attribut Name dans le TextBrowser s'il existe pour une couche donnée.
+    **SOLUTION** \ : Cela ne semble pas être l'endroit le plus intuitif pour récupérer la couche courante et son data provider. Réorganisons les choses pour faire plus simple. Lorsqu'une couche est sélectionnée, la liste des couche émet un signal. Cela semble un bon endroit pour y mettre le code d'initialisation pour la couche courante ou le data provider puisque nous ne nous servons que d'une seule couche à la fois.
+
+    \  **2.** \ Donner les coordonnées X,Y au clic n'est pas d'un très grand intérêt.
+
+    **SOLUTION** \: Mettons quelque chose de plus intéressant dans le TextBrowser. Nous allons mettre l'attribut Name dans le TextBrowser s'il existe pour une couche donnée.
 
 ------------------------------
 
@@ -557,20 +556,19 @@ La raison pour laquelle nous voulons utiliser des variables de classe plutôt qu
 \  **3.** \Ensuite créons une fonction nommée\  ``updateTextBrowser()`` \qui va remplacer la fonction\  ``handleMouseDown()`` \qui met à jour le TextBrowser avec les coordonnées du point. Voici à quoi cette fonction va ressembler. Lisez les commentaires qui expliquent le code::
 
     def updateTextBrowser(self):
-        # if we have a selected feature
         if self.selectList:
             # find the index of the 'NAME' column, branch if has one or not
             nIndx = self.provider.fieldNameIndex('NAME')
             # get our selected feature from the provider, but we have to pass in an empty feature and the column index we want
-            sFeat = QgsFeature()
-            if self.provider.featureAtId(self.selectList[0], sFeat, True, [nIndx]):
+            sFeat = iself.provider.getFeature(QgsFeatureRequest(iself.selectList[0]))[0]
+            if sFeat:
                 # only if we have a 'NAME' column
                 if nIndx != -1:
                     # get the feature attributeMap
                     attMap = sFeat.attributeMap()
-                    # clear old TextBrowser values 
+                    # clear old TextBrowser values
                     self.dlg.clearTextBrowser()
-                    # now update the TextBrowser with attributeMap[nameColumnIndex] 
+                    # now update the TextBrowser with attributeMap[nameColumnIndex]
                     # when we first retrieve the value of 'NAME' it comes as a QString so we have to cast it to a Python string
                     self.dlg.setTextBrowser( str( attMap[nIndx].toString() ))
 
@@ -587,29 +585,29 @@ Voici la fonction complète\  ``selectFeature()`` \pour voir le code ci-dessus d
 
     def selectFeature(self, point, button):
         # reset selection list on each new selection
-        self.selectList = []
-        #QMessageBox.information( self.iface.mainWindow(),"Info", "in selectFeature function" )
-        # setup the provider select to filter results based on a rectangle
+        self.selectList = [] 
+        # setup the provider select to filter results based on a rectangle 
         pntGeom = QgsGeometry.fromPoint(point)  
         # scale-dependent buffer of 2 pixels-worth of map units
         pntBuff = pntGeom.buffer( (self.canvas.mapUnitsPerPixel() * 2),0) 
         rect = pntBuff.boundingBox()
         if self.cLayer:
-            feat = QgsFeature()
-            # create the select statement
-            self.provider.select([],rect) # the arguments mean no attributes returned, and do a bbox filter with our buffered rectangle to limit the amount of features 
-            while self.provider.nextFeature(feat):
+            for feat in self.provider.getFeatures(QgsFeatureRequest(rect)): # the arguments mean no attributes returned, and do a bbox filter with our buffered rectangle to limit the amount of features  
                 # if the feat geom returned from the selection intersects our point then put it in a list
                 if feat.geometry().intersects(pntGeom):
                     self.selectList.append(feat.id())
 
+                # make the actual selection     
+                self.cLayer.setSelectedFeatures(selectList)
+
             if self.selectList:
-                # make the actual selection 
+                # make the actual selection
                 self.cLayer.setSelectedFeatures(self.selectList)
                 # update the TextBrowser
                 self.updateTextBrowser()
-        else:   
+            else:
                 QMessageBox.information( self.iface.mainWindow(),"Info", "No layer currently selected in TOC" )
+
     
 \  **6.** \Comme précaution supplémentaire, nous allons écrire deux lignes dans la fonction\  ``run()`` \qui vont régler la couche courante et le data provider lorsque le plugin est ouvert la première fois. La plupart des gens vont avoir les layers déjà chargé avant d'ouvrir le plugin. Comme notre couche courante et notre data provider sont réglés automatiqumeent quand une couche différente est sélectionnée dans la liste des couches, nous n'avons pas de valeur initiale. Désormais la fonction\  ``run()`` \ressemblera à ceci :
 
